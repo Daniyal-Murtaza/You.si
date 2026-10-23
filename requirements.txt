@@ -1,0 +1,14 @@
+# Direct dependencies (pinned). Full transitive lock: requirements.lock.txt
+openai==3.37.0
+pydantic==2.14.1
+pydantic-settings==2.16.1
+python-dotenv==1.2.4
+typer==0.27.3
+rich==15.0.0
+sentence-transformers==6.2.0
+rank-bm25==0.2.2
+numpy==2.5.4
+
+# Dev
+pytest==9.1.1
+ruff==0.17.2

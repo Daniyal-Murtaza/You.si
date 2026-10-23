@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "yousi"
+version = "0.1.0"
+description = "You.si: a personal twin you own. It learns who you are from your data and your answers, speaks like you, cites its memories, and can be passed on."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Daniyal Murtaza" }]
+dependencies = [
+    "openai==3.37.0",
+    "pydantic==2.14.1",
+    "pydantic-settings==2.16.1",
+    "python-dotenv==1.2.4",
+    "typer==0.27.3",
+    "rich==15.0.0",
+    "sentence-transformers==6.2.0",
+    "rank-bm25==0.2.2",
+    "numpy==2.5.4",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==9.1.1",
+    "ruff==0.17.2",
+]
+
+[project.scripts]
+yousi = "yousi.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["yousi*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "N"]
+ignore = ["B008"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning", "ignore::FutureWarning"]
