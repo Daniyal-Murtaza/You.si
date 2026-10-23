@@ -31,7 +31,7 @@ def _vault(tmp_path):
 
 def test_fidelity_round_hides_ids_and_scores_judge(tmp_path):
     vault, emb, mid = _vault(tmp_path)
-    model = ScriptedChat(script=[f"Midnight, give or take [{mid}]."])
+    model = ScriptedChat(script=[f"Midnight, give or take [{mid}, m000000000000]."])
     ft = FidelityTest(vault, model, emb, rng=random.Random(3))
     assert ft.pick_question() in {q for qs in SEED_QUESTIONS.values() for q in qs}
     rnd = ft.new_round("When do you usually sleep?", "Usually about 12, sometimes later.")

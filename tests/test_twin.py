@@ -221,3 +221,16 @@ def test_retracted_memory_is_never_shown_as_a_source(tmp_path):
     r = twin.reply("No, my father is called Murtaza Zaidi.")
     assert all(not m.retracted for m in r.cited)
     assert ids["father"] not in [m.memory_id for m in r.cited]
+
+
+def test_grouped_citations_are_recognised_and_bogus_ones_removed(tmp_path):
+    from yousi.twin import cited_ids, strip_citations
+
+    vault, emb, ids = _vault(tmp_path)
+    text = f"Midnight, in Seattle [{ids['sleep']}, {ids['city']}, m000000000000]."
+    assert cited_ids(text) == [ids["sleep"], ids["city"], "m000000000000"]
+    assert strip_citations(text) == "Midnight, in Seattle ."
+    model = ScriptedChat(script=[NO_CORRECTION, text])
+    r = Twin(vault, model, emb).reply("I live in Seattle and sleep around midnight?")
+    assert r.grounded and {m.memory_id for m in r.cited} == {ids["sleep"], ids["city"]}
+    assert "m000000000000" not in r.text and ids["sleep"] in r.text
