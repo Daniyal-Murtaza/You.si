@@ -313,6 +313,12 @@ class Twin:
             text = re.sub(r"\s+([.,;:!?])", r"\1", text)
             text = re.sub(r"\s{2,}", " ", text).strip()
         good = [c for c in cited if c in allowed]
+        # Models write "midnight [m...]." leaving "midnight ." once the id is shown elsewhere;
+        # normalise punctuation around citations so replies read cleanly.
+        text = re.sub(
+            r"\s+(\[m[0-9a-f]{12}(?:\s*,\s*m[0-9a-f]{12})*\])\s*([.,;:!?])", r"\2 \1", text
+        )
+        text = re.sub(r"\s+([.,;:!?])", r"\1", text)
         if not hits:
             return text, [], False
         if not good:

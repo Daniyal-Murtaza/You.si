@@ -97,10 +97,54 @@ yousi chat --visitor                         # how a family member experiences i
 Visitor mode never learns, never pretends to be alive, and opens every
 conversation with your disclosure sentence.
 
+## Proof: a live session
+
+Real run with `gpt-4.1-mini` as the brain and local embeddings, after two
+small files were ingested (a journal and a WhatsApp export) and a six-question
+interview. The twin cites a source for each fact, refuses to invent a favourite
+opera, and the fidelity test reports how often the owner could tell it apart.
+
+![Live You.si session](docs/demo.png)
+
+The number to look at is the last panel: **33% fooled, 83% grounded** after
+about thirty memories. 50% fooled would mean indistinguishable. The twin gets
+more like its owner as the vault grows, and the test is how you know.
+
+### What the live run taught us (and fixed)
+
+Running against the real model surfaced failures the scripted tests could not,
+each now fixed with a regression test:
+
+- asked *"What is your favourite opera?"*, the twin recorded "I like opera" as a
+  fact from the question itself, then cited its own invention. Questions can no
+  longer become memories, in code, whatever the classifier says.
+- memories came out as fragments ("She is the funny one") or in third person;
+  extraction now requires self-contained first-person sentences.
+- follow-up questions chained three deep on a topic the person could not
+  answer; now at most one follow-up per answer, never after "I don't know".
+- grouped citations `[m1, m2]` were not recognised, so grounded answers were
+  scored ungrounded and the judge saw raw ids.
+- a scenario prediction built only from values came back at 90% confidence;
+  confidence is now capped in code by how much evidence is actually about the
+  scenario.
+
+### Known limits (not fixed, by honesty)
+
+- **Grounded is not the same as true.** Asked how he handles stress, the twin
+  joined two real memories ("stuck debugging", "headaches without coffee") into
+  a stress-management story the owner never told. Every citation was real; the
+  inference between them was the model's. The fix is more memories and the
+  owner correcting it in chat, which is exactly what owner mode is for.
+- **Voice is approximate.** The owner writes short and dry; the twin tends to
+  smooth and lengthen. Style memories help; Phase 1 will add a small style
+  adapter. The fidelity test will say when it has worked.
+- **Executors are a promise, not a lock.** Phase 0 records who may run the twin;
+  it does not yet encrypt the vault to them.
+
 ## Verify
 
 ```bash
-pytest                                  # 61 offline tests, ~3s, no API key needed
+pytest                                  # 71 offline tests, ~3s, no API key needed
 ruff check . && ruff format --check .
 ```
 

@@ -77,6 +77,10 @@ Stored in `vault.json`, editable with `yousi legacy ...`:
 
 The twin does not remember anything you did not tell it or write down. It does not have experiences, continuity, or feelings. It predicts, with stated confidence, how you would react; it never reports a prediction as something you did. These are limits of the technology, and the product is more trustworthy for stating them.
 
+## Grounded is not true
+
+The strongest guarantee here is provenance: every cited id maps to a memory, every memory to the owner's own words. The guarantee that is *not* made is that the sentence connecting two true memories is itself true. The live run showed the twin joining "stuck debugging" and "headaches without coffee" into a stress-coping story the owner never told. Both citations were real; the link was invented. Retrieval grounding bounds *what* the twin can say, not *how* it combines it. The mitigations are structural: the owner corrects it in chat and the correction becomes a memory; the fidelity test measures the gap; visitor mode always shows the sources so a reader can check the join themselves.
+
 ## Time spent
 
-Roughly six hours: research into the existing products and why they failed or pivoted, a spike confirming local embeddings run on this machine, then the build in nine commits with tests at every step. 61 offline tests run in about three seconds.
+Roughly nine hours: research into the existing products and why they failed or pivoted, a spike confirming local embeddings run on this machine, the build in nine commits with tests at every step, then three hours of live runs against gpt-4.1-mini that found six real defects (each fixed with a regression test) and produced the fidelity numbers in the README. 71 offline tests run in about three seconds.
