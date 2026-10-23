@@ -160,6 +160,10 @@ class VaultMeta:
     )
     counters: dict[str, int] = field(default_factory=dict)
 
+    def disclosure_text(self) -> str:
+        """The disclosure with the owner's name filled in; safe for any text."""
+        return self.disclosure.replace("{owner}", self.owner_name)
+
 
 # --------------------------------------------------------------------------
 # Vault
@@ -488,9 +492,15 @@ class Vault:
 
     # --- generic json files -------------------------------------------------------
 
+    def _inside(self, name: str) -> Path:
+        path = (self.root / name).resolve()
+        if self.root.resolve() not in path.parents:
+            raise ValueError(f"refusing to write outside the vault: {name}")
+        return path
+
     def write_json(self, name: str, obj: Any) -> None:
-        _atomic_write(self.root / name, _dump(obj))
+        _atomic_write(self._inside(name), _dump(obj))
 
     def read_json(self, name: str, default: Any = None) -> Any:
-        path = self.root / name
+        path = self._inside(name)
         return json.loads(path.read_text(encoding="utf-8")) if path.exists() else default

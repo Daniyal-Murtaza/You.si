@@ -350,7 +350,7 @@ def chat(
     meta = c.vault.load_meta()
     console.print(
         Panel(
-            meta.disclosure.format(owner=meta.owner_name)
+            meta.disclosure_text()
             + (
                 "\n[dim]Owner mode: corrections you type become memories.[/dim]"
                 if not visitor

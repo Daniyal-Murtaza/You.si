@@ -133,3 +133,17 @@ def test_missing_embeddings_can_be_filled_later(tmp_path):
     assert embed_missing(vault, HashEmbedder()) == 1
     assert vault.missing_embeddings() == [] and vault.embeddings()[1].shape == (1, 64)
     assert r.search("Seattle")[0].why in ("both", "words", "meaning")
+
+
+def test_write_json_refuses_to_escape_vault(tmp_path):
+    vault = Vault.create(tmp_path / "me", "D")
+    with pytest.raises(ValueError, match="outside the vault"):
+        vault.write_json("../escape.json", {})
+    assert not (tmp_path / "escape.json").exists()
+
+
+def test_disclosure_with_braces_does_not_crash():
+    from yousi.vault import VaultMeta
+
+    meta = VaultMeta(owner_name="D", disclosure="Twin of {owner} {not a format field}")
+    assert meta.disclosure_text() == "Twin of D {not a format field}"

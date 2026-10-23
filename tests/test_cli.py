@@ -68,10 +68,10 @@ def fake_model_step(msgs):
             )
         return json.dumps({"is_correction": False})
     if "You are the recorded twin" in system:
-        ids = re.findall(r"^\[(m[0-9a-f]{12})\]", system, re.M)
+        ids = re.findall(r"^\[(m[0-9a-f]{12})\]", user, re.M)  # memories are in the user turn
         return f"Murtaza, my father [{ids[0]}]." if ids else "I don't know that about myself yet."
     if "predicting how" in system:
-        ids = re.findall(r"\[(m[0-9a-f]{12})\]", system)
+        ids = re.findall(r"\[(m[0-9a-f]{12})\]", user)
         return json.dumps(
             {
                 "reaction": "I'd call my father first.",

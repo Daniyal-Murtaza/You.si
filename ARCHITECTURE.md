@@ -53,7 +53,7 @@ and a **model adapter** that can be swapped for any vendor or a local model.
 4. Generate. Strip any cited id that was not in the retrieved set; mark grounded/ungrounded.
 5. Persist the transcript under `sessions/`.
 
-Visitor mode skips step 2, never learns, and is blocked entirely by the off switch or when posthumous access is disabled.
+Visitor mode skips step 2 and never changes memories or persona; it still records the transcript under `sessions/` so the owner or executors can see what was asked. It is blocked entirely by the off switch or when posthumous access is disabled.
 
 ## Legacy protocol
 
