@@ -56,7 +56,7 @@ def fake_model_step(msgs):
                 },
             }
         )
-    if "Decide whether this message corrects" in system:
+    if "Classify their message" in system:
         if "Zaidi" in user:
             mid = re.search(r"\[(m[0-9a-f]{12})\] \(family\)", user)
             return json.dumps(

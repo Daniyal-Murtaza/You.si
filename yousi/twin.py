@@ -105,6 +105,41 @@ LEARN_HINT_OWNER = (
 LEARN_HINT_VISITOR = "Do not promise to learn; {owner} is not the one speaking."
 
 
+_QUESTION_STARTS = (
+    "what",
+    "when",
+    "where",
+    "who",
+    "whom",
+    "whose",
+    "why",
+    "how",
+    "which",
+    "do ",
+    "does ",
+    "did ",
+    "are ",
+    "is ",
+    "can ",
+    "could ",
+    "would ",
+    "will ",
+    "should ",
+    "tell me",
+    "remind me",
+    "explain",
+    "describe",
+    "list",
+    "give me",
+    "show me",
+)
+
+
+def _looks_like_question(text: str) -> bool:
+    t = text.strip().lower()
+    return t.endswith("?") or t.startswith(_QUESTION_STARTS)
+
+
 def _render_hits(hits: list[Hit]) -> str:
     if not hits:
         return "(none)"
@@ -129,11 +164,18 @@ class _Correction(BaseModel):
 
 
 CORRECTION_SYSTEM = """\
-The OWNER of a twin is talking to it. Decide whether this message corrects one of the listed
-memories ("no, my father is called X", "that's wrong, I live in Y") or states a new fact about
-themself worth remembering. If it corrects a memory, give its id and the corrected first-person
-sentence. If it is a plain new fact, put it in new_fact. Otherwise is_correction=false and
-new_fact="". Never invent; use only what the owner wrote. Domain must be one of: %s
+The OWNER of a twin is talking to it. Classify their message:
+- is_correction=true ONLY if the owner states that a listed memory is WRONG and gives the right
+  version (a contradiction: "no, my father is called X", "I don't live there any more").
+  Set wrong_memory_id to that memory and corrected_text to the owner's corrected sentence.
+  Extra detail that does not contradict a memory is NOT a correction.
+- new_fact: a first-person sentence ONLY if the owner ASSERTS something about themself
+  ("I have a cat called Biscuit", "my father is retired now"). Questions, requests, greetings,
+  opinions about the twin, and hypotheticals are never facts. If in doubt, leave it empty.
+- If the owner's statement AGREES with or merely restates a listed memory, it is neither a
+  correction nor a new fact: is_correction=false, new_fact="".
+- Otherwise is_correction=false and new_fact="".
+Never invent; use only what the owner wrote. Domain must be one of: %s
 """
 
 
@@ -226,7 +268,10 @@ class Twin:
             text = f"{text}\n\n({self._last_learned_note})"
             self._last_learned_note = ""
 
-        cited = [m for m in (self.vault.get(i) for i in cited_ids) if m is not None]
+        cited = [
+            m for m in (self.vault.get(i) for i in cited_ids) if m is not None and not m.retracted
+        ]
+        cited_ids = [m.memory_id for m in cited]
         self.history.append(Turn("user", message))
         self.history.append(Turn("twin", text, cited=cited_ids, grounded=grounded))
         self._save_transcript()
@@ -278,6 +323,10 @@ class Twin:
             log.warning("correction check failed: %s", exc)
             return None
         ref = f"chat-{self.session_id}-{len(self.history) // 2 + 1}"
+        # Code-level guard, independent of the model: a question or a request is never a
+        # fact about the owner, whatever the classifier said.
+        if _looks_like_question(message):
+            return None
         if (
             verdict.is_correction
             and verdict.wrong_memory_id in {h.memory.memory_id for h in hits}

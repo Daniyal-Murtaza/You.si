@@ -182,3 +182,42 @@ def test_injected_memory_text_stays_out_of_system_prompt(tmp_path):
     system = model.calls[1][0].content
     assert hostile not in system
     assert hostile in model.calls[1][-1].content  # present, but inside <memories> as data
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "What is your favourite opera?",
+        "tell me about your father",
+        "Do you like jazz",
+        "how would you handle a layoff?",
+    ],
+)
+def test_questions_never_become_memories_even_if_model_says_so(tmp_path, message):
+    vault, emb, ids = _vault(tmp_path)
+    bad_classifier = json.dumps(
+        {"is_correction": False, "new_fact": "I like opera music.", "domain": "tastes"}
+    )
+    model = ScriptedChat(script=[bad_classifier, "I don't know that about myself yet."])
+    twin = Twin(vault, model, emb)
+    before = vault.count()
+    r = twin.reply(message)
+    assert vault.count() == before
+    assert "Remembered as" not in r.text
+
+
+def test_retracted_memory_is_never_shown_as_a_source(tmp_path):
+    vault, emb, ids = _vault(tmp_path)
+    correction = json.dumps(
+        {
+            "is_correction": True,
+            "wrong_memory_id": ids["father"],
+            "corrected_text": "My father is called Murtaza Zaidi.",
+        }
+    )
+    # The model (wrongly) cites the OLD id after the correction.
+    model = ScriptedChat(script=[correction, f"Murtaza [{ids['father']}]."])
+    twin = Twin(vault, model, emb)
+    r = twin.reply("No, my father is called Murtaza Zaidi.")
+    assert all(not m.retracted for m in r.cited)
+    assert ids["father"] not in [m.memory_id for m in r.cited]
