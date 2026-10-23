@@ -49,7 +49,9 @@ def cited_ids(text: str) -> list[str]:
 
 
 def strip_citations(text: str) -> str:
-    return re.sub(r"\s{2,}", " ", _CITE_GROUP.sub("", text)).strip()
+    text = _CITE_GROUP.sub("", text)
+    text = re.sub(r"\s+([.,;:!?])", r"\1", text)  # "midnight ." -> "midnight."
+    return re.sub(r"\s{2,}", " ", text).strip()
 
 
 MIN_RELEVANCE = 0.25
@@ -308,6 +310,7 @@ class Twin:
             for b in bogus:
                 text = re.sub(rf"\s*,?\s*{b}\s*,?", "", text)
             text = re.sub(r"\[\s*\]", "", text)
+            text = re.sub(r"\s+([.,;:!?])", r"\1", text)
             text = re.sub(r"\s{2,}", " ", text).strip()
         good = [c for c in cited if c in allowed]
         if not hits:

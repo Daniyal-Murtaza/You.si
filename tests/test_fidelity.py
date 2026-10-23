@@ -84,7 +84,8 @@ def test_sandbox_prediction_is_labelled_and_confidence_capped(tmp_path):
     sb = Sandbox(vault, ScriptedChat(script=[good]), emb)
     r = sb.predict("A friend calls around midnight asking you to come out instead of sleep.")
     assert r.label.startswith("PREDICTION")
-    assert r.prediction.confidence == 0.7 and [m.memory_id for m in r.cited] == [mid]
+    # One strongly relevant memory caps confidence at 0.5 however sure the model sounds.
+    assert r.prediction.confidence == 0.5 and [m.memory_id for m in r.cited] == [mid]
     log_lines = (vault.root / "sessions" / "scenarios.jsonl").read_text().splitlines()
     assert len(log_lines) == 1 and "PREDICTION" in log_lines[0]
 

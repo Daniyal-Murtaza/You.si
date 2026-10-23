@@ -287,8 +287,12 @@ class Sandbox:
                 confidence=0.0,
             )
         pred.evidence = [e for e in pred.evidence if e in allowed]
-        if not pred.evidence:
-            pred.confidence = min(pred.confidence, 0.3)
+        # Confidence is bounded by evidence, in code. A prediction built from values and
+        # style alone is a reasonable guess, not knowledge; only memories that are actually
+        # about the scenario (high retrieval score) justify high confidence.
+        strong = sum(1 for h in hits if h.memory.memory_id in pred.evidence and h.score >= 0.6)
+        cap = {0: 0.3, 1: 0.5, 2: 0.65}.get(strong, 0.8) if pred.evidence else 0.3
+        pred.confidence = round(min(pred.confidence, cap), 2)
         cited = [m for m in (self.vault.get(i) for i in pred.evidence) if m is not None]
         result = ScenarioResult(scenario=scenario, prediction=pred, cited=cited)
         self._log(result)

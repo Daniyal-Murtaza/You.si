@@ -229,7 +229,7 @@ def test_grouped_citations_are_recognised_and_bogus_ones_removed(tmp_path):
     vault, emb, ids = _vault(tmp_path)
     text = f"Midnight, in Seattle [{ids['sleep']}, {ids['city']}, m000000000000]."
     assert cited_ids(text) == [ids["sleep"], ids["city"], "m000000000000"]
-    assert strip_citations(text) == "Midnight, in Seattle ."
+    assert strip_citations(text) == "Midnight, in Seattle."
     model = ScriptedChat(script=[NO_CORRECTION, text])
     r = Twin(vault, model, emb).reply("I live in Seattle and sleep around midnight?")
     assert r.grounded and {m.memory_id for m in r.cited} == {ids["sleep"], ids["city"]}

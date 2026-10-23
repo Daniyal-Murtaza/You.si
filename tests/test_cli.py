@@ -150,7 +150,7 @@ def test_full_journey(env):
     # Scenario: labelled prediction; Enter accepts without adding a memory.
     before = vault.count()
     r = run(env, ["scenario", "Someone insults your family"], input="\n")
-    assert r.exit_code == 0 and "PREDICTION" in r.output and "60%" in r.output
+    assert r.exit_code == 0 and "PREDICTION" in r.output and "50%" in r.output
     assert vault.count() == before
     r = run(env, ["scenario", "You win the lottery"], input="I'd keep working.\n")
     assert "+ remembered: I'd keep working." in r.output
