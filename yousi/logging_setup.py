@@ -31,6 +31,13 @@ class RedactingFilter(logging.Filter):
 
 
 def configure_logging(level: str = "INFO", *, quiet_console: bool = False) -> None:
+    # Quiet the ML stack before it is imported; its progress bars are noise in a CLI.
+    import os
+
+    os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+    os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
+    os.environ.setdefault("TRANSFORMERS_VERBOSITY", "error")
+    os.environ.setdefault("TORCH_CPP_LOG_LEVEL", "ERROR")
     root = logging.getLogger("yousi")
     if getattr(root, "_configured", False):
         root.setLevel(level.upper())
@@ -46,8 +53,11 @@ def configure_logging(level: str = "INFO", *, quiet_console: bool = False) -> No
         handler.setLevel(logging.WARNING)
     root.addHandler(handler)
     root._configured = True  # type: ignore[attr-defined]
-    for noisy in ("httpx", "openai", "urllib3", "sentence_transformers", "transformers", "torch"):
+    for noisy in ("httpx", "openai", "urllib3", "sentence_transformers", "transformers"):
         logging.getLogger(noisy).setLevel(logging.WARNING)
+    # torch logs a WARNING on every import on macOS ("Redirects are not supported");
+    # it is irrelevant to us and lands in the middle of the interview.
+    logging.getLogger("torch").setLevel(logging.ERROR)
 
 
 def attach_file(path: Path) -> logging.Handler:

@@ -183,10 +183,21 @@ class _AnswerMemories(BaseModel):
 
 
 ANSWER_SYSTEM = """\
-A person answered a question about themselves. Turn the answer into 1-4 clean first-person
-memory sentences. Rules: use only what they said; keep their wording where it is distinctive;
-never add facts, dates or names that are not in the answer; if the answer reveals how they
-talk (humour, bluntness, phrases), add one memory of kind "style". Domain must be one of: %s
+A person answered a question about themselves. Turn the answer into 1-3 memory sentences.
+Rules:
+- FIRST PERSON ONLY, as the person would say it: "I ...", "My ...". Never "Daniyal is ...",
+  never "they", never commentary like "showing a clear preference".
+- Each memory must stand alone: name the subject explicitly ("My sister Hira is the funny
+  one", never "She is the funny one"). Resolve every pronoun.
+- Record what the answer SAYS, not what the question asked. If asked about fears and they
+  talk about their knee, the memory is about the knee ("I have a bad knee from football"),
+  not "My fear is my knee". Never invent a link to the question's topic.
+- Prefer one richer sentence over fragments. Only split for clearly separate facts.
+- Use only what they said; keep distinctive wording; never add facts, dates or names.
+- If the answer reveals how they talk (humour, bluntness, a turn of phrase), add ONE memory
+  of kind "style" that quotes the phrase, e.g. I say things like "saver by instinct, spender
+  on tools".
+Domain must be one of: %s
 """
 
 
@@ -240,10 +251,10 @@ class _FollowUp(BaseModel):
 
 FOLLOWUP_SYSTEM = """\
 You are interviewing a person to understand them deeply, so that a twin of them can speak as
-they would. Given what they just said and what is already known, ask ONE natural follow-up
-question in the same domain that a close friend would ask. Short, warm, specific, no
-preamble. Do not ask anything already known. If there is nothing worth asking, return an
-empty question.
+they would. Given what they just said, ask ONE natural follow-up a close friend would ask about
+what they ACTUALLY said - not about the original question's topic if their answer went
+elsewhere. Short, warm, specific, no preamble. Do not ask anything already known. If the
+answer was thin, off-topic, or there is nothing worth asking, return an empty question.
 """
 
 
@@ -271,9 +282,17 @@ def next_question(
     rng = rng or random.Random()
     asked = _asked_texts(vault) | {q.text.strip().lower() for q in session.questions}
 
-    # Follow up on the last real answer about a third of the time.
-    last = next((q for q in reversed(session.questions) if q.status == "answered"), None)
-    if last is not None and rng.random() < 0.35:
+    # Follow up on the last answer sometimes - but only if the LAST question was a seed
+    # question that was actually answered. Never chain follow-up on follow-up, and never
+    # follow up on a skip or "I don't know": that is how interviews turn into interrogations.
+    last = session.questions[-1] if session.questions else None
+    can_follow = (
+        last is not None
+        and last.status == "answered"
+        and not last.reason.startswith("follow-up")
+        and rng.random() < 0.35
+    )
+    if can_follow:
         known = "\n".join(f"- {m.text}" for m in vault.by_domain(last.domain)[-12:])
         prompt = (
             f"Domain: {last.domain}\nThey were asked: {last.text}\nThey said: {last.answer}\n"
@@ -288,7 +307,7 @@ def next_question(
                     question_id=Question.make_id(last.domain, fu.question),
                     domain=last.domain,
                     text=fu.question.strip(),
-                    reason=fu.reason or "following up on what you just said",
+                    reason="follow-up: " + (fu.reason or "on what you just said"),
                 )
         except ModelError as exc:
             log.warning("follow-up generation failed: %s", exc)

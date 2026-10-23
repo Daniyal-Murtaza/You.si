@@ -141,8 +141,32 @@ def test_follow_up_uses_model_and_builds_on_answer(tmp_path):
     eng.ask(s)
     eng.answer(s, "My dad is Murtaza, an engineer.")
     q2 = eng.ask(s)
-    assert q2.text == "What did Murtaza teach you?" and q2.reason == "you mentioned him"
+    assert q2.text == "What did Murtaza teach you?" and q2.reason == "follow-up: you mentioned him"
     assert "They said: My dad is Murtaza" in model.calls[1][-1].content
+
+
+def test_follow_ups_never_chain_and_never_follow_dont_know(tmp_path):
+    vault = Vault.create(tmp_path / "v", "D")
+    answer = _answer_json("I like trains.", domain="tastes", kind="preference")
+    follow = json.dumps({"question": "Which trains?", "reason": "detail"})
+    model = ScriptedChat(script=[answer, follow, answer, follow, follow, follow])
+
+    class AlwaysFollowUp(random.Random):
+        def random(self):
+            return 0.0
+
+    eng = InterviewEngine(vault, model, HashEmbedder(), max_questions=6, rng=AlwaysFollowUp(1))
+    s = eng.start()
+    eng.ask(s)
+    eng.answer(s, "I like trains.")  # seed answered -> follow-up allowed
+    q2 = eng.ask(s)
+    assert q2.reason.startswith("follow-up")
+    eng.answer(s, "Steam ones.")  # answered a follow-up -> next must be a seed, not a chain
+    q3 = eng.ask(s)
+    assert not q3.reason.startswith("follow-up")
+    eng.answer(s, "I don't know")  # unknown -> no follow-up either
+    q4 = eng.ask(s)
+    assert not q4.reason.startswith("follow-up")
 
 
 def test_unstructurable_answer_is_stored_verbatim(tmp_path):

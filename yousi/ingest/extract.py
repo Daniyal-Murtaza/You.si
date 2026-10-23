@@ -60,7 +60,9 @@ class ExtractionResult(BaseModel):
 EXTRACT_SYSTEM = """\
 You read a person's own writing and messages and extract what they reveal about that person.
 Rules:
-- Write each memory as ONE clear first-person sentence ("I ...", "My ...").
+- Write each memory as ONE clear first-person sentence ("I ...", "My ...") that stands alone:
+  name people and things explicitly, never leave a pronoun or "that" pointing at another
+  sentence. Merge a sentence that only makes sense with its neighbour into one memory.
 - Only state what the text supports. Never guess, infer biography, or fill gaps.
 - `excerpt` must be an EXACT substring copied from the source. If you cannot quote it, do not
   include the memory.

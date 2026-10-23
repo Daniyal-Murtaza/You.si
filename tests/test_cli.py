@@ -27,7 +27,7 @@ def fake_model_step(msgs):
     """A stand-in model that answers each prompt type plausibly and groundedly."""
     system = msgs[0].content
     user = msgs[-1].content
-    if "Turn the answer into 1-4 clean first-person" in system:
+    if "Turn the answer into 1-3 memory sentences" in system:
         answer = user.split("Answer: ", 1)[1].strip()
         domain = (
             "family"

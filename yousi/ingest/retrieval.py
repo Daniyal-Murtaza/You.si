@@ -38,11 +38,18 @@ class LocalEmbedder:
 
     def _load(self):
         if self._model is None:
+            import logging as _logging
+
+            # torch's elastic module logs a WARNING straight to stderr on every import
+            # on macOS ("Redirects are currently not supported"). Noise for a CLI.
+            _logging.getLogger("torch.distributed.elastic.multiprocessing.redirects").setLevel(
+                _logging.ERROR
+            )
             from sentence_transformers import SentenceTransformer
 
             log.info("loading embedding model %s (first time is slow)", self._name)
             self._model = SentenceTransformer(self._name)
-            self.dims = int(self._model.get_sentence_embedding_dimension() or 384)
+            self.dims = int(self._model.get_embedding_dimension() or 384)
         return self._model
 
     def encode(self, texts: list[str]) -> np.ndarray:
