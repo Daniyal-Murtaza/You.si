@@ -76,7 +76,7 @@ def test_no_relevant_memory_means_no_grounding(tmp_path):
     vault, emb, ids = _vault(tmp_path)
     model = ScriptedChat(script=[NO_CORRECTION, "I don't know that about myself yet."])
     twin = Twin(vault, model, emb)
-    r = twin.reply("What is your favourite opera?")
+    r = twin.reply("Favourite opera composer?")
     assert r.grounded is False and r.retrieved == [] and r.cited == []
     assert "(none)" in model.calls[1][0].content
 

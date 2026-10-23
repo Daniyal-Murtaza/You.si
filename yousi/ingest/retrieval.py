@@ -55,16 +55,22 @@ class LocalEmbedder:
 
 
 class HashEmbedder:
-    """Deterministic, dependency-free embedder for tests. Not semantic."""
+    """Deterministic, dependency-free embedder for tests. Bag of words, not semantic.
+
+    Uses a stable hash: Python's ``hash()`` is salted per process, which would
+    make tests flaky.
+    """
 
     def __init__(self, dims: int = 64) -> None:
         self.dims = dims
 
     def encode(self, texts: list[str]) -> np.ndarray:
+        import zlib
+
         out = np.zeros((len(texts), self.dims), dtype=np.float32)
         for i, text in enumerate(texts):
             for tok in tokenize(text):
-                out[i, hash(tok) % self.dims] += 1.0
+                out[i, zlib.crc32(tok.encode()) % self.dims] += 1.0
             norm = np.linalg.norm(out[i])
             if norm:
                 out[i] /= norm
