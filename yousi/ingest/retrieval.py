@@ -136,6 +136,19 @@ class Hit:
     why: str  # "both" | "words" | "meaning"
 
 
+def embed_missing(vault: Vault, embedder: Embedder, *, batch: int = 64) -> int:
+    """Give every memory without an embedding one. Used after import/rebuild."""
+    missing = vault.missing_embeddings()
+    for i in range(0, len(missing), batch):
+        chunk = missing[i : i + batch]
+        vecs = embedder.encode([m.text for m in chunk])
+        for m, v in zip(chunk, vecs, strict=True):
+            vault.set_embedding(m.memory_id, v)
+    if missing:
+        log.info("embedded %d memories", len(missing))
+    return len(missing)
+
+
 class Retriever:
     """Hybrid search; rebuilt cheaply whenever the vault changes."""
 
@@ -144,18 +157,21 @@ class Retriever:
         self._embedder = embedder
         self._memories: list[Memory] = []
         self._bm25: BM25Okapi | None = None
+        self._corpus: list[list[str]] = []
         self._ids: list[str] = []
         self._matrix = np.zeros((0, 0), dtype=np.float32)
-        self._stamp = -1
+        self._stamp: tuple[int, int] = (-1, -1)
 
     def refresh(self) -> None:
-        stamp = self._vault.count()
+        ids, _ = self._vault.embeddings()
+        stamp = (self._vault.count(), len(ids))
         if stamp == self._stamp and self._memories:
             return
         self._memories = self._vault.all_memories()
         corpus = [
             tokenize(f"{m.domain} {m.kind} {' '.join(m.tags)} {m.text}") for m in self._memories
         ]
+        self._corpus = corpus
         self._bm25 = BM25Okapi(corpus) if corpus else None
         self._ids, self._matrix = self._vault.embeddings()
         self._stamp = stamp
@@ -171,8 +187,13 @@ class Retriever:
             tokens = tokenize(query)
             if tokens:
                 raw = self._bm25.get_scores(tokens)
-                top = max(float(raw.max()), 1e-9)
-                for m, s in zip(self._memories, raw, strict=True):
+                # BM25's IDF goes negative for terms in most documents (always true for
+                # a tiny vault), so score by overlap too: any shared word counts.
+                qset = set(tokens)
+                overlap = np.array([len(qset & set(doc)) for doc in self._corpus], dtype=np.float32)
+                combined = np.maximum(raw, 0.0) + overlap
+                top = max(float(combined.max()), 1e-9)
+                for m, s in zip(self._memories, combined, strict=True):
                     if s > 0:
                         scores[m.memory_id] = (float(s) / top, {"words"})
 

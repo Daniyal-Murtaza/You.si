@@ -120,3 +120,16 @@ def test_counters_are_thread_safe(tmp_path):
 def test_redact_masks_keys():
     assert "sk-abcdefghijklmnop" not in redact("key sk-abcdefghijklmnop here")
     assert "REDACTED" in redact("Authorization: Bearer abcdefghijklmnop")
+
+
+def test_missing_embeddings_can_be_filled_later(tmp_path):
+    from yousi.ingest.retrieval import HashEmbedder, Retriever, embed_missing
+
+    vault = Vault.create(tmp_path / "me", "D")
+    vault.add_memory(_mem("I live in Seattle.", domain="places"))  # no embedding
+    assert len(vault.missing_embeddings()) == 1
+    r = Retriever(vault, HashEmbedder())
+    assert r.search("Seattle")  # BM25 still finds it
+    assert embed_missing(vault, HashEmbedder()) == 1
+    assert vault.missing_embeddings() == [] and vault.embeddings()[1].shape == (1, 64)
+    assert r.search("Seattle")[0].why in ("both", "words", "meaning")

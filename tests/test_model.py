@@ -66,8 +66,9 @@ def test_complete_json_repairs_once_then_succeeds():
     # The repair turn shows the model its own output and the validation error.
     repair_prompt = model.calls[1][-1].content
     assert "not valid" in repair_prompt and "year" in repair_prompt
-    # The schema was appended to the original request.
-    assert "JSON Schema" in model.calls[0][-1].content
+    # The schema lives in the system turn, never mixed into the user's data.
+    assert "JSON Schema" in model.calls[0][0].content and model.calls[0][0].role == "system"
+    assert "JSON Schema" not in model.calls[0][-1].content
 
 
 def test_complete_json_gives_up_after_two_failures():

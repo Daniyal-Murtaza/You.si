@@ -248,11 +248,14 @@ def complete_json(
     """Ask for JSON that validates against ``schema``; one repair attempt on failure."""
     convo = list(messages)
     schema_hint = json.dumps(schema.model_json_schema(), ensure_ascii=False)
-    convo[-1] = Message(
-        convo[-1].role,
-        f"{convo[-1].content}\n\nReply with ONLY a JSON object matching this JSON Schema, "
-        f"no prose:\n{schema_hint}",
+    instruction = (
+        "Reply with ONLY a JSON object matching this JSON Schema, no prose:\n" + schema_hint
     )
+    # Keep the schema in the system turn so user data and instructions never mix.
+    if convo and convo[0].role == "system":
+        convo[0] = Message("system", f"{convo[0].content}\n\n{instruction}")
+    else:
+        convo.insert(0, Message("system", instruction))
     last_error = ""
     for attempt in (1, 2):
         reply = model.chat(convo, temperature=temperature, max_tokens=max_tokens)

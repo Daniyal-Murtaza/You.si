@@ -353,6 +353,20 @@ class Vault:
             counts[domain] = n
         return counts
 
+    def missing_embeddings(self) -> list[Memory]:
+        rows = self.conn().execute(
+            "SELECT * FROM memories WHERE retracted=0 AND embedding IS NULL ORDER BY created_at"
+        )
+        return [self._row_to_memory(r) for r in rows]
+
+    def set_embedding(self, memory_id: str, embedding: np.ndarray) -> None:
+        with self._lock:
+            self.conn().execute(
+                "UPDATE memories SET embedding=? WHERE memory_id=?",
+                (embedding.astype(np.float32).tobytes(), memory_id),
+            )
+            self.conn().commit()
+
     def embeddings(self) -> tuple[list[str], np.ndarray]:
         """All active memory ids and their embedding matrix (rows without one are skipped)."""
         rows = (
